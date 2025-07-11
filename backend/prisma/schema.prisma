@@ -12,6 +12,7 @@ model User {
   username  String  @unique
   password     String
   records   DrawRecord[]
+  posts     Post[]
   createdAt DateTime @default(now())
 }
 
@@ -20,6 +21,7 @@ model Box {
   name        String
   description String
   imageUrl    String
+  series      String
   claimed     Boolean  @default(false)
   records     DrawRecord[]
   createdAt   DateTime @default(now())
@@ -31,5 +33,14 @@ model DrawRecord {
   boxId     Int
   user      User     @relation(fields: [userId], references: [id])
   box       Box      @relation(fields: [boxId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model Post {
+  id        Int      @id @default(autoincrement())
+  content   String
+  imageUrl  String?
+  user      User     @relation(fields: [userId], references: [id])
+  userId    Int
   createdAt DateTime @default(now())
 }
