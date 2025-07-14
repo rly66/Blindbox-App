@@ -116,14 +116,20 @@ export default function DrawPage({ user }) {
         onClick={() => setShowModal(false)}
       >
       </button>
+
+      {result.isRare && (
+        <div className="absolute top-4 left-4 transform rotate-[-20deg] bg-red-600 text-white font-bold px-3 py-1 rounded-full shadow-md text-sm">
+          隐藏款
+      </div>
+      )}
+
       <h2 className="text-2xl font-bold text-green-700 mb-4">🎉 恭喜您抽中了：</h2>
       <img
         src={result.imageUrl}
         alt="盲盒内容图"
         className="w-32 h-32 mx-auto mb-4"
       />
-      <h3 className="text-xl font-semibold">{result.name}</h3>
-      <p className="text-gray-700 mt-2">{result.description}</p>
+      <h3 className="text-xl font-semibold">{result.description}</h3>
       <div className="flex justify-between items-center">
       <button
         className="mt-6 bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700"

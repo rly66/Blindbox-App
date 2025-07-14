@@ -265,13 +265,38 @@ async function initializeData() {
       { name: "神秘盲盒 #2", description: "扮演大圣的蛋黄猫", imageUrl: "/img/swk.gif", seriesId: danhuang.id, claimed: false },
       { name: "神秘盲盒 #3", description: "因太肥胖而头被卡住的蛋黄猫", imageUrl: "/img/chongya.gif", seriesId: danhuang.id, claimed: false },
       { name: "神秘盲盒 #4", description: "专心摸🐟的蛋黄猫", imageUrl: "/img/moyu.gif", seriesId: danhuang.id, claimed: false },
-      { name: "神秘盲盒 #5", description: "自信地走着猫步的一颗蛋黄", imageUrl: "/img/jiandan.gif", seriesId: danhuang.id, claimed: false },
-      { name: "神秘盲盒 #6", description: "边听歌🎵边写oj的蛋黄猫", imageUrl: "/img/tingge.gif", seriesId: danhuang.id, claimed: false },
+      { name: "神秘盲盒 #5", description: "边听歌🎵边写oj的蛋黄猫", imageUrl: "/img/tingge.gif", seriesId: danhuang.id, claimed: false },
+      { name: "神秘盲盒 #6", description: "自信地走着猫步的一颗蛋黄", imageUrl: "/img/jiandan.gif", seriesId: danhuang.id, claimed: false },
       { name: "神秘盲盒 #7", description: "正在嘚瑟地看着你的蛋黄猫", imageUrl: "/img/dese.gif", seriesId: danhuang.id, claimed: false },
       { name: "神秘盲盒 #8", description: "爱打篮球🏀的蛋黄猫", imageUrl: "/img/dalanqiu.gif", seriesId: danhuang.id, claimed: false },
       { name: "神秘盲盒 #9", description: "展示美妙舞姿的蛋黄猫", imageUrl: "/img/tiaowu.gif", seriesId: danhuang.id, claimed: false } 
       ]
     });
+
+    // 创建后更新为隐藏款
+await prisma.box.updateMany({
+  where: {
+    name: "神秘盲盒 #5",
+    seriesId: nezha.id
+  },
+  data: { isRare: true }
+});
+
+await prisma.box.updateMany({
+  where: {
+    name: "神秘盲盒 #4",
+    seriesId: nailong.id
+  },
+  data: { isRare: true }
+});
+
+await prisma.box.updateMany({
+  where: {
+    name: "神秘盲盒 #6",
+    seriesId: danhuang.id
+  },
+  data: { isRare: true }
+});
 
     console.log('数据初始化完成');
   } catch (error) {
