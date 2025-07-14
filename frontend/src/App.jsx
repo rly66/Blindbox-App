@@ -35,6 +35,7 @@ export default function App() {
         password,
       });
       setToken(res.data.token);
+      localStorage.setItem('blindBoxToken', res.data.token);
       setUser(res.data.user);
       localStorage.setItem('blindBoxUser', JSON.stringify(res.data.user));
       setShowLogin(false);
@@ -56,6 +57,7 @@ export default function App() {
       setUser(res.data.user);
       localStorage.setItem('blindBoxUser', JSON.stringify(res.data.user));
       setShowRegister(false);
+      alert('注册成功，请登录');
     } catch (err) {
       console.error('注册失败:', err);
       alert('注册失败，用户名可能已存在');

@@ -19,10 +19,6 @@ export default function MyBoxes({ user }) {
     }
   }, [user]);
 
-  if (!user) {
-    return <div className="text-center mt-12 text-gray-600">请先登录后查看您的盲盒</div>;
-  }
-
   return (
     <div className="p-6">
       <h2 className="text-4xl font-bold text-indigo-700" style={{textShadow: '1px 1px 2px rgba(0,0,0,0.2)', fontFamily: '"STXingkai", "华文行楷", cursive' }}>我抽到的盲盒</h2>

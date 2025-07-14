@@ -16,12 +16,19 @@ model User {
   createdAt DateTime @default(now())
 }
 
+model Series {
+  id    Int    @id @default(autoincrement())
+  name  String
+  boxes Box[]
+}
+
 model Box {
   id          Int      @id @default(autoincrement())
   name        String
   description String
   imageUrl    String
-  series      String
+  seriesId    Int
+  series      Series   @relation(fields: [seriesId], references: [id])
   claimed     Boolean  @default(false)
   records     DrawRecord[]
   createdAt   DateTime @default(now())
