@@ -66,10 +66,10 @@ app.get('/api/boxes/latest', async (req: Request, res: Response) => {
 // 获取某系列的全部盲盒（用于展示系列详情页的普通款 + 隐藏款）
 app.get('/api/boxes', async (req: Request, res: Response) => {
   const { seriesId } = req.query;
-  const seriesIdNum = Number(seriesId);
 
-  if (!seriesIdNum) {
-    return res.status(400).json({ error: '缺少 seriesId 参数' });
+  const seriesIdNum = Number(seriesId);
+  if (!seriesId || isNaN(seriesIdNum)) {
+    return res.status(400).json({ error: '缺少或非法的 seriesId 参数' });
   }
 
   try {
@@ -280,6 +280,45 @@ async function generateBlindBoxes(
   await prisma.box.createMany({ data: allBoxes });
 }
 
+//抽取记录
+app.get('/api/my-boxes', authenticateToken, async (req: Request, res: Response) => {
+  const userId = req.user?.userId;
+
+  if (!userId) {
+    return res.status(401).json({ error: '未认证用户' });
+  }
+
+  try {
+    const records = await prisma.drawRecord.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        box: {
+          include: {
+            series: true,
+          },
+        },
+      },
+    });
+
+    const result = records.map(record => ({
+      id: record.id,
+      seriesId: record.box.seriesId,
+      seriesName: record.box.series.name,
+      boxName: record.box.name,
+      description: record.box.description,
+      imageUrl: record.box.imageUrl,
+      isRare: record.box.isRare,
+      drawTime: record.createdAt,
+    }));
+
+    res.json(result);
+  } catch (error) {
+    console.error('获取用户抽取记录失败:', error);
+    res.status(500).json({ error: '获取抽取记录失败' });
+  }
+});
+
 
 // 初始化数据
 async function initializeData() {
@@ -351,9 +390,22 @@ await generateBlindBoxes(prisma, danhuang.id,
   }
 }
 
+//只在数据表为空时执行初始化
+async function initializeDataIfEmpty() {
+  const userCount = await prisma.user.count();
+  const seriesCount = await prisma.series.count();
+
+  if (userCount === 0 && seriesCount === 0) {
+    console.log('数据库为空，正在初始化...');
+    await initializeData();
+  } else {
+    console.log('数据库已存在数据，跳过初始化。');
+  }
+}
+
 // 启动服务器
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, async () => {
-  await initializeData();
+  await initializeDataIfEmpty();
   console.log(`服务器运行在 http://localhost:${PORT}`);
 });

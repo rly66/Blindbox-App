@@ -3,10 +3,12 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 
 export default function SeriesDetail() {
-  const { seriesId } = useParams();
+  const { seriesId: routeSeriesId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const seriesName = location.state?.seriesName || '系列';
+  const stateSeriesId = location.state?.seriesId;
+  const seriesId = Number(routeSeriesId || stateSeriesId);
 
   const [boxes, setBoxes] = useState([]);
   const [rareBox, setRareBox] = useState(null);
@@ -18,6 +20,10 @@ export default function SeriesDetail() {
   };
 
   useEffect(() => {
+  if (!seriesId || isNaN(seriesId)) {
+    console.error('无效的 seriesId:', seriesId);
+    return null;
+  } 
   async function fetchUniqueBoxes() {
     try {
       const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/boxes?seriesId=${seriesId}`);
@@ -46,8 +52,9 @@ export default function SeriesDetail() {
       console.error('加载系列详情失败:', err);
     }
   }
-
-  fetchUniqueBoxes();
+  if(seriesId){
+    fetchUniqueBoxes();
+  }
 }, [seriesId]);
 
 
