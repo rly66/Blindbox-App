@@ -25,10 +25,13 @@ export default function Home({ user }) {
     async function fetchSeries() {
       try {
         const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/series`);
-        const mergedSeries = res.data.map(series => ({
+        const mergedSeries = res.data.map(series => {
+        const cleanName = series.name.trim(); // 去除空格或换行
+        return {
           ...series,
-          ...seriesMetadata[series.name], // 匹配名称并合并数据
-        }));
+          ...seriesMetadata[cleanName],
+        };
+      });
         setSeriesList(mergedSeries);
       } catch (error) {
         console.error('加载系列失败:', error);
@@ -44,7 +47,6 @@ export default function Home({ user }) {
   };
 
   const handleLogout = () => {
-    // 清除登录信息
     localStorage.removeItem('blindBoxToken');
     localStorage.removeItem('blindBoxUser');
     navigate(0);

@@ -29,6 +29,7 @@ model Box {
   imageUrl    String
   seriesId    Int
   series      Series   @relation(fields: [seriesId], references: [id])
+  boxGroup    Int?
   isRare      Boolean  @default(false)
   claimed     Boolean  @default(false)
   records     DrawRecord[]

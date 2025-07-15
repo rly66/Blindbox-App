@@ -18,22 +18,38 @@ export default function SeriesDetail() {
   };
 
   useEffect(() => {
-    async function fetchNonRareBoxes() {
-      try {
-        const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/boxes?seriesId=${seriesId}`);
-        const nonRare = res.data.filter(box => !box.isRare);
-        const shuffled = nonRare.sort(() => Math.random() - 0.5);
+  async function fetchUniqueBoxes() {
+    try {
+      const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/boxes?seriesId=${seriesId}`);
+      const allBoxes = res.data;
+
+      // 提取所有非隐藏款
+      const nonRareBoxes = allBoxes.filter(box => !box.isRare);
+
+      // 用 description 去重，确保只取8个不同的普通款
+      const uniqueBoxesMap = new Map();
+      for (const box of nonRareBoxes) {
+        if (!uniqueBoxesMap.has(box.description)) {
+          uniqueBoxesMap.set(box.description, box);
+        }
+      }
+
+      const uniqueBoxes = Array.from(uniqueBoxesMap.values()).slice(0, 8);
+      const shuffled = uniqueBoxes.sort(() => Math.random() - 0.5);
         setBoxes(shuffled);
 
-        const rare = res.data.find(box => box.isRare);
-        setRareBox(rare);
-      } catch (err) {
-        console.error('加载系列详情失败:', err);
-      }
-    }
+      // 提取隐藏款
+      const rare = allBoxes.find(box => box.isRare);
+      setRareBox(rare);
 
-    fetchNonRareBoxes();
-  }, [seriesId]);
+    } catch (err) {
+      console.error('加载系列详情失败:', err);
+    }
+  }
+
+  fetchUniqueBoxes();
+}, [seriesId]);
+
 
   return (
     <div className="p-6">

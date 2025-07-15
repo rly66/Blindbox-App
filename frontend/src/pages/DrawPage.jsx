@@ -19,7 +19,7 @@ export default function DrawPage({ user }) {
   const fetchBoxes = async () => {
     try {
       setIsLoading(true);
-      const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/boxes?seriesId=${seriesId}`);
+      const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/boxes/latest?seriesId=${seriesId}`);
       setBoxes(res.data);
       setIsLoading(false);
     } catch (error) {
@@ -80,9 +80,15 @@ export default function DrawPage({ user }) {
   return (
     <div className="items-center mt-6 mb-6">
     <h1 className="text-center text-4xl font-bold text-indigo-700" style={{textShadow: '1px 1px 2px rgba(0,0,0,0.2)', fontFamily: '"STXingkai", "华文行楷", cursive' }}>{seriesName}</h1>
-    <div className="flex flex-col items-center justify-center px-4">
-      <div className="grid grid-cols-3 gap-6 max-w-3xl w-full">
-          {boxes.map((box) => (
+    {boxes.every(box => box.claimed) && (
+    <div className="text-center text-gray-500 mt-3 text-sm">
+      当前一箱已被全部抽完啦，请耐心等待管理员上架新的一箱～
+      <div className="mt-3" />
+    </div>
+    )}
+      <div className="flex flex-col items-center justify-center px-4">
+      <div className="grid grid-cols-4 gap-6 max-w-3xl w-full">
+          {boxes.map((box, index) => (
             <div
               key={box.id}
               onClick={() => !box.claimed && handleDraw(box.id)}
@@ -97,7 +103,7 @@ export default function DrawPage({ user }) {
                 alt="盲盒图标"
                 className="w-24 h-24 mx-auto"
               />
-              <p className="text-center mt-2 font-medium">{box.name}</p>
+              <p className="text-center mt-2 font-medium">神秘盲盒 #{index+1}</p>
 
               {box.claimed && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-60 rounded-lg">

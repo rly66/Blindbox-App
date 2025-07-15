@@ -5,6 +5,7 @@ import bcrypt from 'bcrypt';
 import jwt, { JwtPayload } from 'jsonwebtoken';
 
 const app = express();
+const router = express.Router();
 const prisma = new PrismaClient();
 const JWT_SECRET = 'your_jwt_secret_key'; // 生产环境应使用环境变量
 
@@ -38,27 +39,44 @@ app.get('/api/series', async (req: Request, res: Response) => {
 });
 
 // 获取所有盲盒
+app.get('/api/boxes/latest', async (req: Request, res: Response) => {
+  const { seriesId } = req.query;
+  const seriesIdNum = Number(seriesId);
+
+  const latestGroup = await prisma.box.findFirst({
+    where: { seriesId: seriesIdNum },
+    orderBy: { boxGroup: 'desc' },
+    select: { boxGroup: true },
+  });
+
+  if (!latestGroup?.boxGroup) {
+    return res.json([]);
+  }
+
+  const boxes = await prisma.box.findMany({
+    where: {
+      seriesId: seriesIdNum,
+      boxGroup: latestGroup.boxGroup,
+    },
+  });
+
+  res.json(boxes);
+});
+
+// 获取某系列的全部盲盒（用于展示系列详情页的普通款 + 隐藏款）
 app.get('/api/boxes', async (req: Request, res: Response) => {
   const { seriesId } = req.query;
+  const seriesIdNum = Number(seriesId);
+
+  if (!seriesIdNum) {
+    return res.status(400).json({ error: '缺少 seriesId 参数' });
+  }
 
   try {
-    if (!seriesId) {
-      return res.status(400).json({ error: '缺少 seriesId 参数' });
-    }
-
-    const seriesIdNumber = Number(seriesId);
-    if (isNaN(seriesIdNumber)) {
-      return res.status(400).json({ error: 'seriesId 参数无效' });
-    }
-
     const boxes = await prisma.box.findMany({
-      where: {
-        seriesId: Number(seriesId),
-      },
+      where: { seriesId: seriesIdNum },
+      orderBy: { id: 'asc' },
     });
-
-console.log('seriesId:', seriesId);
-
     res.json(boxes);
   } catch (error) {
     console.error('获取盲盒失败:', error);
@@ -168,6 +186,11 @@ app.post('/api/draw', authenticateToken, async (req: Request, res: Response) => 
   }
 
   try {
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      return res.status(404).json({ error: '用户不存在，请重新登录' });
+    }
+
     // 验证盲盒
     const box = await prisma.box.findUnique({ where: { id: boxId } });
     if (!box) {
@@ -208,14 +231,64 @@ app.post('/api/draw', authenticateToken, async (req: Request, res: Response) => 
   }
 });
 
+type BoxInput = {
+  name: string;
+  description: string;
+  imageUrl: string;
+};
+
+async function generateBlindBoxes(
+  prisma: PrismaClient,
+  seriesId: number,
+  normalBoxes: BoxInput[],
+  rareBox: BoxInput
+) {
+  const totalBoxes = 72; // 6箱 × 12个/箱
+  const rareIndex = Math.floor(Math.random() * totalBoxes);
+  const allBoxes: any[] = [];
+
+  for (let i = 0; i < totalBoxes / 12; i++) {
+    const base8 = [...normalBoxes].sort(() => Math.random() - 0.5).slice(0, 8);
+    const repeated = base8.sort(() => Math.random() - 0.5).slice(0, 3);
+    const filler = base8[Math.floor(Math.random() * base8.length)];
+    const boxGroup = [...base8, ...repeated, filler];
+
+    boxGroup.forEach((box) => {
+      allBoxes.push({
+        name: '神秘盲盒',
+        description: box.description,
+        imageUrl: box.imageUrl,
+        isRare: false,
+        seriesId,
+        claimed: false,
+        boxGroup: i+1,
+      });
+    });
+  }
+
+  // 插入隐藏款
+  allBoxes[rareIndex] = {
+    name: '神秘盲盒',
+    description: rareBox.description,
+    imageUrl: rareBox.imageUrl,
+    isRare: true,
+    seriesId,
+    claimed: false,
+    boxGroup: Math.floor(rareIndex / 12) + 1,
+  };
+
+  await prisma.box.createMany({ data: allBoxes });
+}
+
+
 // 初始化数据
 async function initializeData() {
   try {
     // 清空现有数据
     await prisma.drawRecord.deleteMany();
     await prisma.box.deleteMany();
-    await prisma.user.deleteMany();
     await prisma.series.deleteMany();
+    await prisma.user.deleteMany();
 
     // 创建测试用户
     const hashedPassword = await bcrypt.hash('test123', 10);
@@ -230,73 +303,47 @@ async function initializeData() {
     const nailong = await prisma.series.create({ data: { name: '奶龙系列' } });
     const danhuang = await prisma.series.create({ data: { name: '蛋黄猫系列' } });
 
-    // 创建9个盲盒
-    await prisma.box.createMany({ 
-      data: [
-      { name: "神秘盲盒 #1", description: "哪吒", imageUrl: "/img/nz.jpg",  seriesId: nezha.id, claimed: false },
-      { name: "神秘盲盒 #2", description: "敖闰", imageUrl: "/img/ar.jpg", seriesId: nezha.id, claimed: false },
-      { name: "神秘盲盒 #3", description: "敖丙", imageUrl: "/img/ab.jpg", seriesId: nezha.id, claimed: false },
-      { name: "神秘盲盒 #4", description: "鹤童", imageUrl: "/img/ht.jpg", seriesId: nezha.id, claimed: false },
-      { name: "神秘盲盒 #5", description: "灵珠版哪吒", imageUrl: "/img/lzbnz.jpg", seriesId: nezha.id, claimed: false },
-      { name: "神秘盲盒 #6", description: "殷夫人", imageUrl: "/img/yfr.jpg", seriesId: nezha.id, claimed: false },
-      { name: "神秘盲盒 #7", description: "敖光", imageUrl: "/img/ag.jpg", seriesId: nezha.id, claimed: false },
-      { name: "神秘盲盒 #8", description: "李靖", imageUrl: "/img/lj.jpg", seriesId: nezha.id, claimed: false },
-      { name: "神秘盲盒 #9", description: "申小豹", imageUrl: "/img/sxb.jpg", seriesId: nezha.id, claimed: false } 
-      ]
-    });
+    await generateBlindBoxes(prisma, nezha.id,
+  [
+    { name: "哪吒系列1", description: "哪吒", imageUrl: "/img/nz.jpg" },
+    { name: "哪吒系列2", description: "敖闰", imageUrl: "/img/ar.jpg" },
+    { name: "哪吒系列3", description: "敖丙", imageUrl: "/img/ab.jpg" },
+    { name: "哪吒系列4", description: "鹤童", imageUrl: "/img/ht.jpg" },
+    { name: "哪吒系列5", description: "申小豹", imageUrl: "/img/sxb.jpg" },
+    { name: "哪吒系列6", description: "殷夫人", imageUrl: "/img/yfr.jpg" },
+    { name: "哪吒系列7", description: "敖光", imageUrl: "/img/ag.jpg" },
+    { name: "哪吒系列8", description: "李靖", imageUrl: "/img/lj.jpg" },
+  ],
+  { name: "哪吒系列9", description: "灵珠版哪吒", imageUrl: "/img/lzbnz.jpg" }
+);
 
-    await prisma.box.createMany({ 
-      data: [
-      { name: "神秘盲盒 #1", description: "飞快奔跑的奶龙", imageUrl: "/img/paobu.gif",  seriesId: nailong.id, claimed: false },
-      { name: "神秘盲盒 #2", description: "会变色的奶龙", imageUrl: "/img/bsl.gif", seriesId: nailong.id, claimed: false },
-      { name: "神秘盲盒 #3", description: "边躺平边运动的奶龙", imageUrl: "/img/lanqiu.gif", seriesId: nailong.id, claimed: false },
-      { name: "神秘盲盒 #4", description: "会美瞎你的奶龙", imageUrl: "/img/bianshen.gif", seriesId: nailong.id, claimed: false },
-      { name: "神秘盲盒 #5", description: "看到美味食物的奶龙", imageUrl: "/img/chan.gif", seriesId: nailong.id, claimed: false },
-      { name: "神秘盲盒 #6", description: "跳海草舞的奶龙", imageUrl: "/img/yaohuang.gif", seriesId: nailong.id, claimed: false },
-      { name: "神秘盲盒 #7", description: "穿着大花袄的奶龙", imageUrl: "/img/dahuaao.gif", seriesId: nailong.id, claimed: false },
-      { name: "神秘盲盒 #8", description: "教你“人生道理”的诸葛奶龙", imageUrl: "/img/shuijiao.gif", seriesId: nailong.id, claimed: false },
-      { name: "神秘盲盒 #9", description: "只有眼睛会动的奶龙", imageUrl: "/img/buganshuohua.gif", seriesId: nailong.id, claimed: false } 
-      ]
-    });
+await generateBlindBoxes(prisma, nailong.id,
+  [
+    { name: "奶龙系列1", description: "飞快奔跑的奶龙", imageUrl: "/img/paobu.gif" },
+    { name: "奶龙系列2", description: "会变色的奶龙", imageUrl: "/img/bsl.gif" },
+    { name: "奶龙系列3", description: "边躺平边运动的奶龙", imageUrl: "/img/lanqiu.gif" },
+    { name: "奶龙系列4", description: "只有眼睛会动的奶龙", imageUrl: "/img/buganshuohua.gif" },
+    { name: "奶龙系列5", description: "看到美味食物的奶龙", imageUrl: "/img/chan.gif" },
+    { name: "奶龙系列6", description: "跳海草舞的奶龙", imageUrl: "/img/yaohuang.gif" },
+    { name: "奶龙系列7", description: "穿着大花袄的奶龙", imageUrl: "/img/dahuaao.gif" },
+    { name: "奶龙系列8", description: "诸葛奶龙", imageUrl: "/img/shuijiao.gif" },
+  ],
+  { name: "奶龙系列9", description: "美若天仙的奶龙", imageUrl: "/img/bianshen.gif" }
+);
 
-    await prisma.box.createMany({ 
-      data: [
-      { name: "神秘盲盒 #1", description: "破🥚壳而出的蛋黄猫", imageUrl: "/img/hi.gif",  seriesId: danhuang.id, claimed: false },
-      { name: "神秘盲盒 #2", description: "扮演大圣的蛋黄猫", imageUrl: "/img/swk.gif", seriesId: danhuang.id, claimed: false },
-      { name: "神秘盲盒 #3", description: "因太肥胖而头被卡住的蛋黄猫", imageUrl: "/img/chongya.gif", seriesId: danhuang.id, claimed: false },
-      { name: "神秘盲盒 #4", description: "专心摸🐟的蛋黄猫", imageUrl: "/img/moyu.gif", seriesId: danhuang.id, claimed: false },
-      { name: "神秘盲盒 #5", description: "边听歌🎵边写oj的蛋黄猫", imageUrl: "/img/tingge.gif", seriesId: danhuang.id, claimed: false },
-      { name: "神秘盲盒 #6", description: "自信地走着猫步的一颗蛋黄", imageUrl: "/img/jiandan.gif", seriesId: danhuang.id, claimed: false },
-      { name: "神秘盲盒 #7", description: "正在嘚瑟地看着你的蛋黄猫", imageUrl: "/img/dese.gif", seriesId: danhuang.id, claimed: false },
-      { name: "神秘盲盒 #8", description: "爱打篮球🏀的蛋黄猫", imageUrl: "/img/dalanqiu.gif", seriesId: danhuang.id, claimed: false },
-      { name: "神秘盲盒 #9", description: "展示美妙舞姿的蛋黄猫", imageUrl: "/img/tiaowu.gif", seriesId: danhuang.id, claimed: false } 
-      ]
-    });
-
-    // 创建后更新为隐藏款
-await prisma.box.updateMany({
-  where: {
-    name: "神秘盲盒 #5",
-    seriesId: nezha.id
-  },
-  data: { isRare: true }
-});
-
-await prisma.box.updateMany({
-  where: {
-    name: "神秘盲盒 #4",
-    seriesId: nailong.id
-  },
-  data: { isRare: true }
-});
-
-await prisma.box.updateMany({
-  where: {
-    name: "神秘盲盒 #6",
-    seriesId: danhuang.id
-  },
-  data: { isRare: true }
-});
+await generateBlindBoxes(prisma, danhuang.id,
+  [
+    { name: "蛋黄猫系列1", description: "破🥚壳而出的蛋黄猫", imageUrl: "/img/hi.gif" },
+    { name: "蛋黄猫系列2", description: "扮演大圣的蛋黄猫", imageUrl: "/img/swk.gif" },
+    { name: "蛋黄猫系列3", description: "因太肥胖而头被卡住的蛋黄猫", imageUrl: "/img/chongya.gif" },
+    { name: "蛋黄猫系列4", description: "专心摸🐟的蛋黄猫", imageUrl: "/img/moyu.gif" },
+    { name: "蛋黄猫系列5", description: "边听歌🎵边写oj的蛋黄猫", imageUrl: "/img/tingge.gif" },
+    { name: "蛋黄猫系列6", description: "展示美妙舞姿的蛋黄猫", imageUrl: "/img/tiaowu.gif" },
+    { name: "蛋黄猫系列7", description: "正在嘚瑟地看着你的蛋黄猫", imageUrl: "/img/dese.gif" },
+    { name: "蛋黄猫系列8", description: "爱打篮球🏀的蛋黄猫", imageUrl: "/img/dalanqiu.gif" },
+  ],
+  { name: "蛋黄猫系列9", description: "自信地走着猫步的一颗蛋黄", imageUrl: "/img/jiandan.gif" }
+);
 
     console.log('数据初始化完成');
   } catch (error) {
