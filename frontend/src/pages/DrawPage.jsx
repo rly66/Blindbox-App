@@ -118,7 +118,7 @@ export default function DrawPage({ user }) {
       </button>
 
       {result.isRare && (
-        <div className="absolute top-4 left-4 transform rotate-[-20deg] bg-red-600 text-white font-bold px-3 py-1 rounded-full shadow-md text-sm">
+        <div className="absolute top-6 left-4 transform rotate-[-20deg] bg-red-600 text-white font-bold px-4 py-2 rounded-full shadow-md text-bg">
           隐藏款
       </div>
       )}

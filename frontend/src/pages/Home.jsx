@@ -38,7 +38,7 @@ export default function Home({ user }) {
   }, []);
 
   const handleSeriesClick = (seriesId, seriesName) => {
-    navigate(`/draw/${seriesId}`, {
+    navigate(`/series/${seriesId}`, {
       state: { seriesName },
     });
   };

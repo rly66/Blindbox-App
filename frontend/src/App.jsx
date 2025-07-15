@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 import WelcomePage from './pages/WelcomePage';
 import Home from './pages/Home';
+import SeriesDetail from './pages/SeriesDetail';
 import DrawPage from './pages/DrawPage';
 import MyBoxes from './pages/MyBoxes';
 import Feed from './pages/Feed';
@@ -115,6 +116,7 @@ export default function App() {
           <div className="flex-1 p-4">
             <Routes>
               <Route path="/" element={<Home user={user} />} />
+              <Route path="/series/:seriesId" element={<SeriesDetail />} />
               <Route path="/draw/:seriesId" element={<DrawPage user={user} />} />
               <Route path="/my-boxes" element={<MyBoxes user={user} />} />
               <Route path="/feed" element={<Feed user={user} />} />
