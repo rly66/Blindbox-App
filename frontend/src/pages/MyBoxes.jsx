@@ -26,8 +26,8 @@ export default function MyBoxes({ user }) {
   }, [user]);
 
   return (
-    <div className="p-10">
-      <h2 className="text-4xl font-bold text-indigo-700" style={{textShadow: '1px 1px 2px rgba(0,0,0,0.2)', fontFamily: '"STXingkai", "华文行楷", cursive' }}>我抽到的盲盒</h2>
+    <div className="p-6">
+      <h1 className="text-4xl font-bold text-indigo-700" style={{textShadow: '1px 1px 2px rgba(0,0,0,0.2)', fontFamily: '"STXingkai", "华文行楷", cursive' }}>我抽到的盲盒</h1>
       <div className="grid grid-cols-3 gap-6 mt-6">
         {myBoxes.map((box) => (
           <div key={box.id} className="bg-white shadow-md rounded-lg p-10 text-center">

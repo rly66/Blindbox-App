@@ -42,7 +42,7 @@ export default function SeriesDetail() {
 
       const uniqueBoxes = Array.from(uniqueBoxesMap.values()).slice(0, 8);
       const shuffled = uniqueBoxes.sort(() => Math.random() - 0.5);
-        setBoxes(shuffled);
+      setBoxes(shuffled);
 
       // 提取隐藏款
       const rare = allBoxes.find(box => box.isRare);
@@ -81,7 +81,7 @@ export default function SeriesDetail() {
               alt="隐藏款"
               className="w-full h-52 object-contain mb-2 rounded"
             />
-            <p className="text-sm text-gray-500 text-center mt-1">隐藏款</p>
+            <p className="text-sm text-gray-500 text-center mt-1">隐藏款（抽中概率为1/72哦）</p>
           </div>
         )}
         </div>
