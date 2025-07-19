@@ -8,7 +8,6 @@ export default function Feed() {
   const [posts, setPosts] = useState([]);
   const [showPostForm, setShowPostForm] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [currentUser, setCurrentUser] = useState(null);
 
   const fetchPosts = async () => {
     const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/posts`);
@@ -16,35 +15,8 @@ export default function Feed() {
   };
 
   useEffect(() => {
-    const userStr = localStorage.getItem('blindBoxUser');
-    if (userStr) {
-      try {
-        setCurrentUser(JSON.parse(userStr));
-      } catch (e) {
-        console.error('用户信息解析失败：', e);
-      }
-    }
-  }, []);
-
-  useEffect(() => {
     fetchPosts();
   }, [refreshKey]);
-
-  const handleDelete = async (postId) => {
-    const token = localStorage.getItem('blindBoxToken');
-
-    console.log('删除请求的token:', token);
-
-    try {
-      await axios.delete(`${import.meta.env.VITE_BACKEND_URL}/api/posts/${postId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setRefreshKey(prev => prev + 1); // 触发重新加载
-    } catch (error) {
-      alert('删除失败');
-      console.error('删除失败:', error);
-    }
-  };
 
   return (
     <>
@@ -65,18 +37,7 @@ export default function Feed() {
         {posts.map(post => (
           <div key={post.id} className="relative">
             <PostCard post={post} onLikeToggle={() => setRefreshKey(prev => prev + 1)} />
-            {currentUser && post.user.id === currentUser.id && (
-              <button
-                onClick={() => {
-                  if (window.confirm('确定要删除这条帖子吗？')) {
-                    handleDelete(post.id);
-                  }
-                }}
-                className="absolute top-2 right-2 text-sm text-red-500 hover:text-red-700 bg-white px-2 py-1 rounded shadow"
-              >
-                删除
-              </button>
-            )}
+            <CommentSection postId={post.id} onCommentAdd={() => setRefreshKey(prev => prev + 1)}/>
           </div>
         ))}
       </div>

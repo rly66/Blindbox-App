@@ -17,7 +17,10 @@ declare global {
   }
 }
 
-app.use(cors());
+app.use(cors({
+  origin: 'http://localhost:5173',
+  credentials: true,
+}));
 app.use(express.json());
 
 // 基础路由
@@ -145,7 +148,7 @@ app.post('/api/login', async (req: Request, res: Response) => {
     }
     
     // 生成JWT令牌
-    const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '1h' });
+    const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '3h' });
     
     res.json({ 
       token, 
@@ -170,8 +173,10 @@ function authenticateToken(req: Request, res: Response, next: NextFunction) {
     if (err) return res.status(403).json({ error: '无效的认证令牌' });
     if (typeof decoded === 'object' && decoded !== null) {
       req.user = { userId: (decoded as JwtPayload).userId };
+      return next();
+    } else {
+      return res.status(403).json({ error: '认证信息异常' });
     }
-    next();
   });
 }
 
@@ -485,32 +490,74 @@ app.post('/api/posts/:postId/like', authenticateToken, async (req, res) => {
 
 //评论
 app.post('/api/posts/:postId/comments', authenticateToken, async (req, res) => {
-  const postId = Number(req.params.postId);
+  const { postId } = req.params;
   const { content } = req.body;
-  const userId = req.user?.userId;
+  const userId = req.user.userId;
+
+  if (!postId) {
+    return res.status(400).json({ message: 'Post ID is required' });
+  }
+
+  if (!userId) {
+    return res.status(401).json({ error: '未登录用户不能评论' });
+  }
+
+  if (typeof userId !== 'number') {
+    return res.status(401).json({ error: '用户未认证' });
+  }
 
   if (!content) {
     return res.status(400).json({ error: '评论内容不能为空' });
   }
 
-  if (typeof userId !== 'number') {
-  return res.status(401).json({ error: '用户未认证' });
-}
-
 try {
   const comment = await prisma.comment.create({
     data: {
       content,
-      postId,
-      userId,
-    }
+      post: { connect: { id: Number(postId) } },
+      user: { connect: { id: userId } },
+    },
+    include: { 
+      user: true, 
+    },
   });
 
   res.json(comment);
+  console.log('评论用户ID:', req.user?.userId);
+
 } catch (err) {
   console.error('评论失败:', err);
   res.status(500).json({ error: '评论失败' });
 }
+});
+
+//删除评论
+app.delete('/api/comments/:commentId', authenticateToken, async (req, res) => {
+  const { commentId } = req.params;
+  const userId = req.user?.userId;
+
+  try {
+    const comment = await prisma.comment.findUnique({
+      where: { id: Number(commentId) },
+    });
+
+    if (!comment) {
+      return res.status(404).json({ message: '评论不存在' });
+    }
+
+    if (comment.userId !== userId) {
+      return res.status(403).json({ message: '无权限删除此评论' });
+    }
+
+    await prisma.comment.delete({
+      where: { id: Number(commentId) },
+    });
+
+    res.json({ message: '评论删除成功' });
+  } catch (error) {
+    console.error('删除评论失败', error);
+    res.status(500).json({ message: '服务器错误' });
+  }
 });
 
 //获取全部帖子（含点赞数、评论数)
@@ -531,7 +578,7 @@ app.get('/api/posts', async (req, res) => {
 app.get('/api/posts/:postId/comments', async (req, res) => {
   const postId = Number(req.params.postId);
   const comments = await prisma.comment.findMany({
-    where: { postId },
+    where: { postId: Number(postId) },
     orderBy: { createdAt: 'asc' },
     include: { user: true },
   });
