@@ -5,6 +5,8 @@ import { useNavigate } from 'react-router-dom';
 export default function Home({ user }) {
   const navigate = useNavigate();
   const [seriesList, setSeriesList] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [loading, setLoading] = useState(true);
 
   const seriesMetadata = {
     '哪吒系列': {
@@ -21,6 +23,10 @@ export default function Home({ user }) {
     },
   };
 
+  const filteredSeries = seriesList.filter((s) =>
+    s.name.toLowerCase().includes(searchTerm.toLowerCase().trim())
+  );
+
   useEffect(() => {
     async function fetchSeries() {
       try {
@@ -35,8 +41,11 @@ export default function Home({ user }) {
         setSeriesList(mergedSeries);
       } catch (error) {
         console.error('加载系列失败:', error);
+      } finally {
+      setLoading(false);
       }
     }
+
     fetchSeries();
   }, []);
 
@@ -58,6 +67,10 @@ export default function Home({ user }) {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-4xl font-bold text-indigo-700" style={{textShadow: '1px 1px 2px rgba(0,0,0,0.2)', fontFamily: '"STXingkai", "华文行楷", cursive' }}>盲盒首页</h1>
         <div className="flex items-center space-x-4">
+          {/* 搜索框 */}
+          <input type="text" placeholder="搜索系列名称" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
+            className="px-4 py-2 border rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-300"
+          />
           <span className="text-gray-700">欢迎，{user?.username}</span>
           <button
             onClick={handleLogout}
@@ -71,7 +84,10 @@ export default function Home({ user }) {
       {/* 系列盲盒展示区 */}
       <h2 className="text-xl font-semibold mb-4 text-indigo-500" style={{ fontFamily: '"STXingkai", "华文行楷", cursive' }}>选择你心仪的系列开启盲盒之旅吧！</h2>
       <div className="grid grid-cols-3 gap-6">
-        {seriesList.map((s) => (
+        {loading ? (
+          <p className="text-gray-400">正在加载盲盒系列...</p>
+        ) : filteredSeries.length > 0 ? (
+        filteredSeries.map((s) => (
           <div
             key={s.id}
             className="bg-white shadow-md rounded-lg p-4 hover:shadow-xl transition-all cursor-pointer"
@@ -85,7 +101,10 @@ export default function Home({ user }) {
             <h3 className="text-lg font-semibold">{s.name}</h3>
             <p className="text-gray-500 text-sm mt-1">{s.description}</p>
           </div>
-        ))}
+        ))
+        ) : (
+          <p className="mt-8 text-gray-500 text-sm">没有匹配的系列。</p>
+        )}
       </div>
 
       <footer className="mt-36 text-center text-xs text-gray-400">
