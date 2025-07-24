@@ -41,29 +41,72 @@ app.get('/api/series', async (req: Request, res: Response) => {
 });
 
 // 获取所有盲盒
-app.get('/api/boxes/latest', async (req: Request, res: Response) => {
-  const { seriesId } = req.query;
-  const seriesIdNum = Number(seriesId);
+app.get('/api/boxes/latest', async (req, res) => {
+  const seriesId = parseInt(req.query.seriesId as string);
+  if (!seriesId) return res.status(400).json({ message: '缺少 seriesId 参数' });
 
-  const latestGroup = await prisma.box.findFirst({
-    where: { seriesId: seriesIdNum },
-    orderBy: { boxGroup: 'desc' },
-    select: { boxGroup: true },
+  const activeBatch = await prisma.boxBatch.findFirst({
+    where: { seriesId, isActive: true },
+    orderBy: { createdAt: 'desc' },
   });
 
-  if (!latestGroup?.boxGroup) {
-    return res.json([]);
-  }
+  if (!activeBatch) return res.status(404).json({ message: '该系列尚未上架任何盲盒' });
 
   const boxes = await prisma.box.findMany({
-    where: {
-      seriesId: seriesIdNum,
-      boxGroup: latestGroup.boxGroup,
-    },
+    where: { batchId: activeBatch.id },
+    orderBy: { id: 'asc' },
   });
 
-  res.json(boxes);
+  res.json({ boxes });
 });
+
+// 创建一箱 12 个盲盒（包含一个隐藏款的概率为 1/72）
+async function generateBlindBoxesForBatch(seriesId: number, batchId: number) {
+  const characters = await prisma.box.findMany({
+    where: { seriesId },
+  });
+
+  const normalCharacters = characters.filter((c) => !c.isRare);
+  const hiddenCharacters = characters.filter((c) => c.isRare);
+
+  // 选择 5 个不重复的普通角色
+  const shuffled = [...normalCharacters].sort(() => Math.random() - 0.5);
+  const selected5 = shuffled.slice(0, 5);
+
+  // 从这5个中随机3个重复一次，组成 5+3=8
+  const repeated = selected5.sort(() => Math.random() - 0.5).slice(0, 3);
+  const normalBoxCharacters = [...selected5, ...repeated];
+
+  // 添加隐藏款（仅 1/72 概率）
+  const hiddenBoxIncluded = Math.random() < 1 / 72;
+  if (hiddenBoxIncluded && hiddenCharacters.length > 0) {
+    const hiddenOne =
+      hiddenCharacters[Math.floor(Math.random() * hiddenCharacters.length)];
+    normalBoxCharacters.push(hiddenOne);
+  }
+
+  // 填满到12个（剩下的补普通款）
+  while (normalBoxCharacters.length < 12) {
+    const extra =
+      normalCharacters[Math.floor(Math.random() * normalCharacters.length)];
+    normalBoxCharacters.push(extra);
+  }
+
+  // 随机打乱顺序
+  normalBoxCharacters.sort(() => Math.random() - 0.5);
+
+  // 返回用于创建的盲盒数据
+  return normalBoxCharacters.map((char) => ({
+    name: char.name,
+    description: char.description,
+    imageUrl: char.imageUrl,
+    isHidden: char.isRare,
+    claimed: false,
+    seriesId,
+    batchId,
+  }));
+}
+
 
 // 获取某系列的全部盲盒（用于展示系列详情页的普通款 + 隐藏款）
 app.get('/api/boxes', async (req: Request, res: Response) => {
@@ -140,6 +183,12 @@ app.post('/api/login', async (req: Request, res: Response) => {
     // 查找用户
     const user = await prisma.user.findUnique({ 
       where: { username },
+      select: {
+        id: true,
+        username: true,
+        password: true,
+        isAdmin: true,
+      },
     });
     
     // 验证用户和密码
@@ -154,7 +203,8 @@ app.post('/api/login', async (req: Request, res: Response) => {
       token, 
       user: {
         id: user.id,
-        username: user.username
+        username: user.username,
+        isAdmin: user.isAdmin
       }
     });
   } catch (error) {
@@ -163,21 +213,56 @@ app.post('/api/login', async (req: Request, res: Response) => {
   }
 });
 
+// 获取当前登录用户信息
+app.get('/api/me', authenticateToken, async (req, res) => {
+  const userId = req.user?.userId;
+  if (!userId) return res.status(401).json({ error: '未认证用户' });
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        username: true,
+        isAdmin: true,
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: '用户不存在' });
+    }
+
+    res.json(user);
+  } catch (error) {
+    console.error('获取用户信息失败', error);
+    res.status(500).json({ error: '服务器错误' });
+  }
+});
+
 // JWT验证中间件
-function authenticateToken(req: Request, res: Response, next: NextFunction) {
+async function authenticateToken(req: Request, res: Response, next: NextFunction) {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
   if (!token) return res.status(401).json({ error: '未提供认证令牌' });
 
-  jwt.verify(token, JWT_SECRET, (err, decoded) => {
+  jwt.verify(token, JWT_SECRET, async (err, decoded) => {
     if (err) return res.status(403).json({ error: '无效的认证令牌' });
     if (typeof decoded === 'object' && decoded !== null) {
-      req.user = { userId: (decoded as JwtPayload).userId };
-      return next();
+      const userId = (decoded as JwtPayload).userId;
+      // 查询数据库用户
+      const user = await prisma.user.findUnique({ where: { id: userId } });
+      if (!user) return res.status(403).json({ error: '用户不存在' });
+
+      // 把完整用户信息挂到请求
+      req.user = { userId: user.id, ...user };
+      next();
     } else {
       return res.status(403).json({ error: '认证信息异常' });
     }
   });
+
+  console.log('Authorization Header:', req.headers['authorization']);
+
 }
 
 // 受保护的盲盒抽取路由
@@ -235,55 +320,6 @@ app.post('/api/draw', authenticateToken, async (req: Request, res: Response) => 
   }
 });
 
-type BoxInput = {
-  name: string;
-  description: string;
-  imageUrl: string;
-};
-
-async function generateBlindBoxes(
-  prisma: PrismaClient,
-  seriesId: number,
-  normalBoxes: BoxInput[],
-  rareBox: BoxInput
-) {
-  const totalBoxes = 72; // 6箱 × 12个/箱
-  const rareIndex = Math.floor(Math.random() * totalBoxes);
-  const allBoxes: any[] = [];
-
-  for (let i = 0; i < totalBoxes / 12; i++) {
-    const base8 = [...normalBoxes].sort(() => Math.random() - 0.5).slice(0, 8);
-    const repeated = base8.sort(() => Math.random() - 0.5).slice(0, 3);
-    const filler = base8[Math.floor(Math.random() * base8.length)];
-    const boxGroup = [...base8, ...repeated, filler];
-
-    boxGroup.forEach((box) => {
-      allBoxes.push({
-        name: '神秘盲盒',
-        description: box.description,
-        imageUrl: box.imageUrl,
-        isRare: false,
-        seriesId,
-        claimed: false,
-        boxGroup: i+1,
-      });
-    });
-  }
-
-  // 插入隐藏款
-  allBoxes[rareIndex] = {
-    name: '神秘盲盒',
-    description: rareBox.description,
-    imageUrl: rareBox.imageUrl,
-    isRare: true,
-    seriesId,
-    claimed: false,
-    boxGroup: Math.floor(rareIndex / 12) + 1,
-  };
-
-  await prisma.box.createMany({ data: allBoxes });
-}
-
 //抽取记录
 app.get('/api/my-boxes', authenticateToken, async (req: Request, res: Response) => {
   const userId = req.user?.userId;
@@ -323,77 +359,6 @@ app.get('/api/my-boxes', authenticateToken, async (req: Request, res: Response) 
   }
 });
 
-
-// 初始化数据
-async function initializeData() {
-  try {
-    // 清空现有数据
-    await prisma.drawRecord.deleteMany();
-    await prisma.box.deleteMany();
-    await prisma.series.deleteMany();
-    await prisma.user.deleteMany();
-
-    // 创建测试用户
-    const hashedPassword = await bcrypt.hash('test123', 10);
-    await prisma.user.create({
-      data: { 
-        username: 'testuser',
-        password: hashedPassword
-      },
-    });
-
-    const nezha = await prisma.series.create({ data: { name: '哪吒系列' } });
-    const nailong = await prisma.series.create({ data: { name: '奶龙系列' } });
-    const danhuang = await prisma.series.create({ data: { name: '蛋黄猫系列' } });
-
-    await generateBlindBoxes(prisma, nezha.id,
-  [
-    { name: "哪吒系列1", description: "哪吒", imageUrl: "/img/nz.jpg" },
-    { name: "哪吒系列2", description: "敖闰", imageUrl: "/img/ar.jpg" },
-    { name: "哪吒系列3", description: "敖丙", imageUrl: "/img/ab.jpg" },
-    { name: "哪吒系列4", description: "鹤童", imageUrl: "/img/ht.jpg" },
-    { name: "哪吒系列5", description: "申小豹", imageUrl: "/img/sxb.jpg" },
-    { name: "哪吒系列6", description: "殷夫人", imageUrl: "/img/yfr.jpg" },
-    { name: "哪吒系列7", description: "敖光", imageUrl: "/img/ag.jpg" },
-    { name: "哪吒系列8", description: "李靖", imageUrl: "/img/lj.jpg" },
-  ],
-  { name: "哪吒系列9", description: "灵珠版哪吒", imageUrl: "/img/lzbnz.jpg" }
-);
-
-await generateBlindBoxes(prisma, nailong.id,
-  [
-    { name: "奶龙系列1", description: "飞快奔跑的奶龙", imageUrl: "/img/paobu.gif" },
-    { name: "奶龙系列2", description: "会变色的奶龙", imageUrl: "/img/bsl.gif" },
-    { name: "奶龙系列3", description: "边躺平边运动的奶龙", imageUrl: "/img/lanqiu.gif" },
-    { name: "奶龙系列4", description: "只有眼睛会动的奶龙", imageUrl: "/img/buganshuohua.gif" },
-    { name: "奶龙系列5", description: "看到美味食物的奶龙", imageUrl: "/img/chan.gif" },
-    { name: "奶龙系列6", description: "跳海草舞的奶龙", imageUrl: "/img/yaohuang.gif" },
-    { name: "奶龙系列7", description: "穿着大花袄的奶龙", imageUrl: "/img/dahuaao.gif" },
-    { name: "奶龙系列8", description: "诸葛奶龙", imageUrl: "/img/shuijiao.gif" },
-  ],
-  { name: "奶龙系列9", description: "美若天仙的奶龙", imageUrl: "/img/bianshen.gif" }
-);
-
-await generateBlindBoxes(prisma, danhuang.id,
-  [
-    { name: "蛋黄猫系列1", description: "破🥚壳而出的蛋黄猫", imageUrl: "/img/hi.gif" },
-    { name: "蛋黄猫系列2", description: "扮演大圣的蛋黄猫", imageUrl: "/img/swk.gif" },
-    { name: "蛋黄猫系列3", description: "因太肥胖而头被卡住的蛋黄猫", imageUrl: "/img/chongya.gif" },
-    { name: "蛋黄猫系列4", description: "专心摸🐟的蛋黄猫", imageUrl: "/img/moyu.gif" },
-    { name: "蛋黄猫系列5", description: "边听歌🎵边写oj的蛋黄猫", imageUrl: "/img/tingge.gif" },
-    { name: "蛋黄猫系列6", description: "展示美妙舞姿的蛋黄猫", imageUrl: "/img/tiaowu.gif" },
-    { name: "蛋黄猫系列7", description: "正在嘚瑟地看着你的蛋黄猫", imageUrl: "/img/dese.gif" },
-    { name: "蛋黄猫系列8", description: "爱打篮球🏀的蛋黄猫", imageUrl: "/img/dalanqiu.gif" },
-  ],
-  { name: "蛋黄猫系列9", description: "自信地走着猫步的一颗蛋黄", imageUrl: "/img/jiandan.gif" }
-);
-
-    console.log('数据初始化完成');
-  } catch (error) {
-    console.error('初始化失败:', error);
-  }
-}
-
 //只在数据表为空时执行初始化
 async function initializeDataIfEmpty() {
   const userCount = await prisma.user.count();
@@ -401,7 +366,7 @@ async function initializeDataIfEmpty() {
 
   if (userCount === 0 && seriesCount === 0) {
     console.log('数据库为空，正在初始化...');
-    await initializeData();
+    await import('../scripts/initData');
   } else {
     console.log('数据库已存在数据，跳过初始化。');
   }
@@ -584,6 +549,137 @@ app.get('/api/posts/:postId/comments', async (req, res) => {
   });
 
   res.json(comments);
+});
+
+// 管理员后台操作
+// 1.获取所有系列与对应箱子状态
+app.get('/api/admin/batches/status', authenticateToken, async (req, res) => {
+  const user = req.user;
+  if (!user || !user.isAdmin) {
+    return res.status(403).json({ error: '无权访问，管理员权限不足' });
+  }
+
+  try {
+    const seriesList = await prisma.series.findMany({
+      include: {
+        batches: {
+          include: {
+            boxes: true,
+          },
+        },
+      },
+    });
+
+    const result = seriesList.map((series) => {
+      const batches = series.batches.map((batch) => {
+        const total = batch.boxes.length;
+        const claimed = batch.boxes.filter((b) => b.claimed).length;
+        const isFinished = claimed >= total;
+
+        return {
+          batchId: batch.id,
+          batchNo: batch.batchNo,
+          total,
+          claimed,
+          isFinished,
+          isActive: batch.isActive
+        };
+      });
+
+      return {
+        seriesId: series.id,
+        seriesName: series.name,
+        batches,
+      };
+    });
+
+    res.json(result);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: '获取箱子状态失败' });
+  }
+});
+
+// 2.查看所有抽取记录
+app.get('/api/admin/draw-records', authenticateToken, async (req, res) => {
+  const user = req.user;
+  if (!user || !user.isAdmin) {
+    return res.status(403).json({ error: '无权访问，管理员权限不足' });
+  }
+
+  try {
+    const records = await prisma.drawRecord.findMany({
+      include: {
+        user: { select: { id: true, username: true } },
+        box: {
+          include: {
+            series: true,
+          },
+    },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const formatted = records.map((r) => ({
+      username: r.user.username,
+      boxName: r.box.name,
+      description: r.box.description,
+      seriesName: r.box.series.name,
+      isRare: r.box.isRare,
+      drawTime: r.createdAt,
+    }));
+
+    res.json(formatted);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: '获取抽取记录失败' });
+  }
+});
+
+// 3.上架新箱子
+app.post('/api/admin/batch/activate', async (req, res) => {
+  const { seriesId } = req.body;
+
+  // 找到当前正在上架的箱子
+  const current = await prisma.boxBatch.findFirst({
+    where: { seriesId, isActive: true },
+    orderBy: { batchNo: 'asc' },
+  });
+
+  // 检查是否被抽完
+  const total = await prisma.box.count({ where: { batchId: current?.id } });
+  const claimed = await prisma.box.count({ where: { batchId: current?.id, claimed: true } });
+  if (claimed < total) {
+    return res.status(400).json({ error: '当前箱子还未抽完，不能上架下一箱' });
+  }
+
+  // 将当前设为 inactive
+  await prisma.boxBatch.update({
+    where: { id: current?.id },
+    data: { isActive: false },
+  });
+
+  // 找到下一箱
+  const nextBatch = await prisma.boxBatch.findFirst({
+    where: {
+      seriesId,
+      isActive: false,
+      batchNo: { gt: current?.batchNo },
+    },
+    orderBy: { batchNo: 'asc' },
+  });
+
+  if (!nextBatch) {
+    return res.status(400).json({ error: '没有更多的箱子可上架' });
+  }
+
+  // 上架下一箱
+  await prisma.boxBatch.update({
+    where: { id: nextBatch.id },
+    data: { isActive: true },
+  });
+
+  return res.json({ message: `成功上架第 ${nextBatch.batchNo} 箱` });
 });
 
 

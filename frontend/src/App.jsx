@@ -7,6 +7,9 @@ import SeriesDetail from './pages/SeriesDetail';
 import DrawPage from './pages/DrawPage';
 import MyBoxes from './pages/MyBoxes';
 import Feed from './pages/Feed';
+import AdminPage from './pages/admin/AdminPage';
+import AdminBoxes from './pages/admin/AdminBoxes';
+import AdminOrders from './pages/admin/AdminOrders';
 import Sidebar from './components/Sidebar';
 import AuthForm from './components/Authform';
 import axios from 'axios';
@@ -112,14 +115,21 @@ export default function App() {
       ) : (
         // 登录后页面
         <div className="flex">
-          <Sidebar />
+          <Sidebar user={user} />
           <div className="flex-1 p-4">
             <Routes>
+              {/* 普通用户页面 */}
               <Route path="/" element={<Home user={user} />} />
               <Route path="/series/:seriesId" element={<SeriesDetail />} />
               <Route path="/draw/:seriesId" element={<DrawPage user={user} />} />
               <Route path="/my-boxes" element={<MyBoxes user={user} />} />
               <Route path="/feed" element={<Feed user={user} />} />
+
+              {/* 管理员页面 */}
+              <Route path="/admin" element={<AdminPage />} />
+              <Route path="/admin/boxes" element={<AdminBoxes />} />
+              <Route path="/admin/orders" element={<AdminOrders />} />
+              
               <Route path="*" element={<Navigate to="/" />} />
             </Routes>
           </div>

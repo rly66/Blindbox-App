@@ -45,7 +45,7 @@ export default function MyBoxes({ user }) {
             </p>
             <p className="text-xs text-gray-400 mt-1">抽取时间：{new Date(box.drawTime).toLocaleString()}</p>
             {box.isRare && (
-              <span className="mt-1 inline-block text-xs text-red-600 font-semibold">隐藏款</span>
+              <span className="mt-1 inline-block text-lg text-red-600 font-semibold shadow-sm rounded-full backdrop-blur border border-pink-300 bg-pink-100">🌟隐藏款🌟</span>
             )}
           </div>
         ))}
