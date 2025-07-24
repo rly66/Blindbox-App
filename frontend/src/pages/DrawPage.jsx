@@ -84,7 +84,7 @@ export default function DrawPage() {
       <h1
         className="text-center text-4xl font-bold text-indigo-700"
         style={{
-          textShadow: '1px 1px 2px rgba(0,0,0,0.2)',
+          textShadow: '2px 2px 4px rgba(0,0,0,0.2)',
           fontFamily: '"STXingkai", "华文行楷", cursive',
         }}
       >
@@ -98,7 +98,7 @@ export default function DrawPage() {
         </div>
       )}
 
-      <div className="flex flex-col items-center justify-center px-4">
+      <div className="pt-6 flex flex-col items-center justify-center px-4">
         <div className="grid grid-cols-4 gap-6 max-w-3xl w-full">
           {Array.isArray(boxes) &&
             boxes.map((box, index) => (
@@ -108,7 +108,7 @@ export default function DrawPage() {
                 className={`relative p-4 rounded-lg shadow-md transition-all duration-300 ${
                   box.claimed
                     ? 'bg-gray-200 cursor-not-allowed'
-                    : 'bg-white hover:shadow-lg hover:scale-105 cursor-pointer'
+                    : 'bg-white hover:shadow-lg hover:scale-105 cursor-pointer border border-transparent hover:border-indigo-400'
                 }`}
               >
                 <img src="/icon.gif" alt="盲盒图标" className="w-24 h-24 mx-auto" />
@@ -149,7 +149,7 @@ export default function DrawPage() {
               <img
                 src={result.imageUrl}
                 alt="盲盒内容图"
-                className="w-32 h-32 mx-auto mb-4"
+                className="w-1/2 h-1/2 mx-auto mb-4"
               />
               <h3 className="text-xl font-semibold">{result.description}</h3>
               <div className="flex justify-between items-center">

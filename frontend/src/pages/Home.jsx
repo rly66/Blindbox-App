@@ -65,11 +65,11 @@ export default function Home({ user }) {
     <div className="p-6">
       {/* 顶部欢迎区 */}
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-4xl font-bold text-indigo-700" style={{textShadow: '1px 1px 2px rgba(0,0,0,0.2)', fontFamily: '"STXingkai", "华文行楷", cursive' }}>盲盒首页</h1>
+        <h1 className="text-4xl font-bold text-indigo-700" style={{textShadow: '2px 2px 4px rgba(0,0,0,0.2)', fontFamily: '"STXingkai", "华文行楷", cursive' }}>盲盒首页</h1>
         <div className="flex items-center space-x-4">
           {/* 搜索框 */}
           <input type="text" placeholder="搜索系列名称" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
-            className="px-4 py-2 border rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-300"
+            className="px-4 py-2 border rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
           />
           <span className="text-gray-700">欢迎，{user?.username}</span>
           <button
@@ -82,7 +82,7 @@ export default function Home({ user }) {
       </div>
 
       {/* 系列盲盒展示区 */}
-      <h2 className="text-xl font-semibold mb-4 text-indigo-500" style={{ fontFamily: '"STXingkai", "华文行楷", cursive' }}>选择你心仪的系列开启盲盒之旅吧！</h2>
+      <h2 className="text-xl font-semibold mb-4 text-indigo-500 animate-bounce" style={{ fontFamily: '"STXingkai", "华文行楷", cursive' }}>》〉选择你心仪的系列开启盲盒之旅吧！</h2>
       <div className="grid grid-cols-3 gap-6">
         {loading ? (
           <p className="text-gray-400">正在加载盲盒系列...</p>
@@ -90,7 +90,7 @@ export default function Home({ user }) {
         filteredSeries.map((s) => (
           <div
             key={s.id}
-            className="bg-white shadow-md rounded-lg p-4 hover:shadow-xl transition-all cursor-pointer"
+            className="bg-indigo-50 rounded-xl p-5 shadow-md hover:shadow-2xl hover:scale-[1.05] transition-transform cursor-pointer border border-transparent hover:border-indigo-400"
             onClick={() => handleSeriesClick(s.id, s.name)}
           >
             <img
@@ -99,7 +99,7 @@ export default function Home({ user }) {
               className="w-full h-60 object-contain rounded-md mb-2"
             />
             <h3 className="text-lg font-semibold">{s.name}</h3>
-            <p className="text-gray-500 text-sm mt-1">{s.description}</p>
+            <p className="text-gray-500 text-sm mt-1 leading-relaxed">{s.description}</p>
           </div>
         ))
         ) : (

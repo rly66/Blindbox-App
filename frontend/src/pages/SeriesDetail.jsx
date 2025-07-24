@@ -59,10 +59,10 @@ export default function SeriesDetail() {
 
 
   return (
-    <div className="p-6">
-      <h1 className="text-3xl font-bold text-center text-indigo-700 mb-6" style={{ fontFamily: '"STXingkai", "华文行楷", cursive' }}>{seriesName} · 系列详情</h1>
+    <div className="min-h-screen bg-gradient-to-b p-8 flex flex-col items-center">
+      <h1 className="text-3xl font-bold text-center text-indigo-700 mb-6" style={{ fontFamily: '"STXingkai", "华文行楷", cursive', textShadow: '2px 2px 4px rgba(0,0,0,0.2)'}}>{seriesName} · 系列详情</h1>
 
-      <div className="grid grid-cols-3 gap-6 max-w-5xl mx-auto">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 max-w-6xl w-full">
         {boxes.map((box) => (
           <div key={box.id} className="bg-white shadow-md rounded-lg p-4">
             <img
@@ -89,13 +89,13 @@ export default function SeriesDetail() {
       <div className="flex justify-center gap-8 mt-12">
         <button
           onClick={() => navigate(`/draw/${seriesId}`, { state: { seriesName } })}
-          className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded shadow"
+          className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg shadow-lg font-semibold transition focus:outline-none focus:ring-4 focus:ring-green-400"
         >
           抽一个
         </button>
         <button
           onClick={() => navigate('/')}
-          className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-6 py-2 rounded"
+          className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-6 py-3 rounded-lg font-semibold transition focus:outline-none focus:ring-4 focus:ring-gray-400"
         >
           返回
         </button>

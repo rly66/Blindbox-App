@@ -21,7 +21,7 @@ export default function Feed() {
   return (
     <>
     <div className="p-6">
-      <h1 className="text-4xl font-bold text-indigo-700" style={{textShadow: '1px 1px 2px rgba(0,0,0,0.2)', fontFamily: '"STXingkai", "华文行楷", cursive' }}>玩家秀</h1>
+      <h1 className="text-4xl font-bold text-indigo-700" style={{textShadow: '2px 2px 4px rgba(0,0,0,0.2)', fontFamily: '"STXingkai", "华文行楷", cursive' }}>玩家秀</h1>
       <button
         className="absolute top-10 right-10"
         onClick={() => setShowPostForm(true)}
