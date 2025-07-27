@@ -1,3 +1,4 @@
+import path from 'path';
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import { PrismaClient } from '@prisma/client';
@@ -16,6 +17,12 @@ declare global {
     }
   }
 }
+
+/*app.use(express.static(path.join(__dirname, 'public')));
+
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/index.html'));
+});*/
 
 app.use(cors({
   origin: 'http://localhost:5173',
@@ -366,7 +373,7 @@ async function initializeDataIfEmpty() {
 
   if (userCount === 0 && seriesCount === 0) {
     console.log('数据库为空，正在初始化...');
-    await import('../scripts/initData');
+    await import('./scripts/initData');
   } else {
     console.log('数据库已存在数据，跳过初始化。');
   }

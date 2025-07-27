@@ -108,7 +108,7 @@ export default function CommentSection({ postId, onCommentAdd }) {
              }
           }} className="ml-2">
                 <img
-                  src="/delete.jpg"
+                  src="/img/delete.jpg"
                   alt="删除评论"
                   className="w-3 h-3 hover:scale-105 transition-transform"
                 />

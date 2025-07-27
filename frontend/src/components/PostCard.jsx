@@ -61,7 +61,7 @@ export default function PostCard({ post, onLikeToggle }) {
           }}
          >
            <img
-            src="/delete.jpg"
+            src="/img/delete.jpg"
              alt="删除帖子"
              className="w-4 h-4 hover:scale-105 transition-transform"
           />

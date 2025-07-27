@@ -6,7 +6,7 @@ export default function WelcomePage({ onShowLogin, onShowRegister }) {
     <div className="h-screen w-full relative flex justify-center items-center overflow-hidden">
       {/* 背景图 */}
       <img
-        src="/nl.gif"
+        src="/img/nl.gif"
         alt="背景"
         className="absolute inset-0 w-full h-full object-contain pointer-events-none"
       />

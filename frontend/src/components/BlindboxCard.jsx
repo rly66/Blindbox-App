@@ -8,7 +8,7 @@ export default function BlindBoxCard({ box, onClick }) {
           : 'bg-white hover:shadow-lg hover:scale-105 cursor-pointer'
       }`}
     >
-      <img src="/icon.gif" alt="盲盒图标" className="w-24 h-24 mx-auto" />
+      <img src="/img/icon.gif" alt="盲盒图标" className="w-24 h-24 mx-auto" />
       <p className="text-center mt-2 font-medium">{box.name}</p>
       {box.claimed && (
         <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-60 rounded-lg">

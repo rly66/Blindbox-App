@@ -1,0 +1,94 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  isAdmin   Boolean      @default(false)
+  id        Int          @id @default(autoincrement())
+  username  String       @unique
+  password  String
+  records   DrawRecord[]
+  posts     Post[]
+  likes     Like[]
+  comments  Comment[]
+  createdAt DateTime     @default(now())
+}
+
+model Series {
+  id      Int        @id @default(autoincrement())
+  name    String
+  boxes   Box[]
+  batches BoxBatch[]
+}
+
+model BoxBatch {
+  id        Int      @id @default(autoincrement())
+  seriesId  Int
+  series    Series   @relation(fields: [seriesId], references: [id])
+  boxes     Box[]
+  batchNo   Int
+  isActive  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@unique([seriesId, batchNo], name: "seriesId_batchNo")
+}
+
+model Box {
+  id          Int          @id @default(autoincrement())
+  name        String
+  description String
+  imageUrl    String
+  seriesId    Int
+  series      Series       @relation(fields: [seriesId], references: [id])
+  batchId     Int
+  batch       BoxBatch     @relation(fields: [batchId], references: [id])
+  isRare      Boolean      @default(false)
+  claimed     Boolean      @default(false)
+  records     DrawRecord[]
+  createdAt   DateTime     @default(now())
+}
+
+model DrawRecord {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  boxId     Int
+  user      User     @relation(fields: [userId], references: [id])
+  box       Box      @relation(fields: [boxId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model Post {
+  id        Int       @id @default(autoincrement())
+  content   String
+  imageUrl  String?
+  user      User      @relation(fields: [userId], references: [id])
+  userId    Int
+  createdAt DateTime  @default(now())
+  likes     Like[]
+  comments  Comment[]
+}
+
+model Like {
+  id     Int  @id @default(autoincrement())
+  user   User @relation(fields: [userId], references: [id])
+  userId Int
+  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId Int
+
+  @@unique([userId, postId]) // 防止重复点赞
+}
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  content   String
+  user      User     @relation(fields: [userId], references: [id])
+  userId    Int
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId    Int
+  createdAt DateTime @default(now())
+}

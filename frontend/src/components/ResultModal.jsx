@@ -6,7 +6,7 @@ export default function ResultModal({ result, onClose, onShare }) {
       <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full text-center relative">
         <button className="absolute top-2 right-2 text-gray-500" onClick={onClose}>×</button>
         <h2 className="text-2xl font-bold text-green-700 mb-4">🎉 恭喜您抽中了：</h2>
-        <img src={result.imageUrl || '/icon.gif'} alt="盲盒内容图" className="w-32 h-32 mx-auto mb-4" />
+        <img src={result.imageUrl || '/img/icon.gif'} alt="盲盒内容图" className="w-32 h-32 mx-auto mb-4" />
         <h3 className="text-xl font-semibold">{result.name}</h3>
         <p className="text-gray-700 mt-2">{result.description}</p>
         <div className="mt-6 flex justify-between items-center">

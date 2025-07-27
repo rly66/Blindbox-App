@@ -27,7 +27,7 @@ export default function Feed() {
         onClick={() => setShowPostForm(true)}
       >
         <img
-          src="/post.jpg"
+          src="/img/post.jpg"
           alt="发帖"
           className="w-10 h-10 hover:scale-105 transition-transform"
         />

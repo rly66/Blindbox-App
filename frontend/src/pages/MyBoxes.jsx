@@ -31,7 +31,7 @@ export default function MyBoxes({ user }) {
       <div className="grid grid-cols-3 gap-6 mt-6">
         {myBoxes.map((box) => (
           <div key={box.id} className="bg-white shadow-md rounded-lg p-10 text-center">
-            <img src={box.imageUrl || '/icon.gif'} alt={box.boxName} className="w-32 h-40 mx-auto mb-2" />
+            <img src={box.imageUrl || '/img/icon.gif'} alt={box.boxName} className="w-32 h-40 mx-auto mb-2" />
             <h3 className="font-semibold text-lg">{box.description}</h3>
             <p className="text-sm text-indigo-600 mt-1">
               系列：

@@ -3,9 +3,11 @@
   "private": true,
   "scripts": {
     "install:all": "npm --prefix frontend install && npm --prefix backend install",
-    "dev": "concurrently \"npm --prefix frontend run dev\" \"npm --prefix backend run dev\""
+    "dev": "concurrently \"npm --prefix frontend run dev\" \"npm --prefix backend run dev\"",
+    "build": "vite build"
   },
   "devDependencies": {
+    "@midwayjs/bundle-helper": "^1.3.0",
     "concurrently": "^8.0.1"
   },
   "dependencies": {

@@ -111,7 +111,7 @@ export default function DrawPage() {
                     : 'bg-white hover:shadow-lg hover:scale-105 cursor-pointer border border-transparent hover:border-indigo-400'
                 }`}
               >
-                <img src="/icon.gif" alt="盲盒图标" className="w-24 h-24 mx-auto" />
+                <img src="/img/icon.gif" alt="盲盒图标" className="w-24 h-24 mx-auto" />
                 <p className="text-center mt-2 font-medium">神秘盲盒 #{index + 1}</p>
 
                 {box.claimed && (
